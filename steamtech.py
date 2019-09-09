@@ -40,6 +40,9 @@ class SteamTechyClient(discord.Client):
 
     def determine_game_query_response(self, message):
         text = message.content[len(self.PREFIX_HOOK) + len(self.PREFIX_GAME_QUERY):].strip().lower()
+        while text.endswith('?'):
+            text = text[:-1]
+
         captures = text.split()
 
         if len(captures) < 1:
