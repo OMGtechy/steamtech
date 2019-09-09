@@ -98,8 +98,13 @@ class SteamTechyClient(discord.Client):
 
                 entries = [f'{game_to_padded_name(game)} ({game_to_playtime(game)})' for game in recent_games]
 
+            was_empty = False
             if not entries:
+                was_empty = True
                 entries = [f'{user} hasn\'t played any Steam games in the past 2 weeks']
+
+            if user.lower() == 'spacejock':
+                entries.insert(0, f'Typical...' if was_empty else f'Well fancy that, {user}\'s not trying to break the bot today!')
 
             return '```' + '\n'.join(entries) + '```'
 
