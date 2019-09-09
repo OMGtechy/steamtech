@@ -89,4 +89,8 @@ class SteamAPIWrapper:
         here = f'GetRecentlyPlayedGames({count}, {steamid}):'
         response = self.get_response_from_result(here, self.steam_player_service().GetRecentlyPlayedGames(count, steamid))
 
+        response_count = self.get_key_from_dict(here, 'total_count', response)
+        if response_count == 0:
+            return None
+
         return self.get_key_from_dict(here, 'games', response)

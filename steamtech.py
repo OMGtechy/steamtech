@@ -62,35 +62,41 @@ class SteamTechyClient(discord.Client):
             else:
                 recent_games = self.steam_api_wrapper.get_recently_played_games(user)
 
-            def game_to_name(game):
-                name_key = 'name'
-                if name_key in game:
-                    return game[name_key]
-                
-                appid = game['appid']
-                return f'Steam AppID {appid}'
+            entries = None
 
-            def longest_name_finder(current_max, candidate):
-                name = game_to_name(candidate)
-                name_length = len(name)
+            if recent_games:
+                def game_to_name(game):
+                    name_key = 'name'
+                    if name_key in game:
+                        return game[name_key]
+                    
+                    appid = game['appid']
+                    return f'Steam AppID {appid}'
 
-                if current_max > name_length:
-                    return current_max
-                
-                return name_length
+                def longest_name_finder(current_max, candidate):
+                    name = game_to_name(candidate)
+                    name_length = len(name)
 
-            longest_name = functools.reduce(longest_name_finder, recent_games, 0)
+                    if current_max > name_length:
+                        return current_max
+                    
+                    return name_length
 
-            def game_to_playtime(game):
-                playtime = game['playtime_2weeks']
-                suffix = 'minutes' if playtime > 1 else 'minute'
-                return f'{playtime} {suffix} in the last 2 weeks'
+                longest_name = functools.reduce(longest_name_finder, recent_games, 0)
 
-            def game_to_padded_name(game):
-                game_name = game_to_name(game)
-                return game_name + (' ' * (longest_name - len(game_name)))
+                def game_to_playtime(game):
+                    playtime = game['playtime_2weeks']
+                    suffix = 'minutes' if playtime > 1 else 'minute'
+                    return f'{playtime} {suffix} in the last 2 weeks'
 
-            entries = [f'{game_to_padded_name(game)} ({game_to_playtime(game)})' for game in recent_games]
+                def game_to_padded_name(game):
+                    game_name = game_to_name(game)
+                    return game_name + (' ' * (longest_name - len(game_name)))
+
+                entries = [f'{game_to_padded_name(game)} ({game_to_playtime(game)})' for game in recent_games]
+
+            if not entries:
+                entries = [f'{user} hasn\'t played any Steam games in the past 2 weeks']
 
             return '```' + '\n'.join(entries) + '```'
 
