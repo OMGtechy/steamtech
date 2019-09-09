@@ -17,7 +17,7 @@ class SteamTechyClient(discord.Client):
 
     async def on_message(self, message):
         if message.content.lower().startswith(self.PREFIX_HOOK):
-            await self.send_message(message.channel, self.determine_channel_response(message))
+            await message.channel.send(self.determine_channel_response(message))
 
     def determine_channel_response(self, message):
         # this is to prevent the bot getting into an infinite loop
