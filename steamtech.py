@@ -237,8 +237,8 @@ if __name__ == "__main__":
         # carry on, we might find all the info we need in the env vars
         pass
 
-    discord_token = settings.get('discord_token', os.environ['DISCORD_TOKEN'])
-    steam_token = settings.get('steam_token', os.environ['STEAM_TOKEN'])
+    discord_token = settings.get('discord_token', os.getenv('DISCORD_TOKEN', None))
+    steam_token = settings.get('steam_token', os.getenv('STEAM_TOKEN', None))
 
     client = SteamTechyClient(steam_token)
     client.run(discord_token)
