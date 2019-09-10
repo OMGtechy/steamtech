@@ -101,7 +101,10 @@ class SteamTechyClient(discord.Client):
             all_games = self.steam_api_wrapper.get_all_steam_games()
 
             # anyone wanna tweet #bruteforce ?
-            game_entry = next(game for game in all_games if game_name == game.get('name', None).lower())
+            try:
+                game_entry = next(game for game in all_games if game_name == game.get('name', None).lower())
+            except StopIteration:
+                return f'Couldn\'t find a game called {game_name}'
 
             # now we have the entry, we can get the appid out of it
             # yep, we just got every single game off of steam for a single appid
