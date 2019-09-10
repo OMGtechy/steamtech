@@ -7,6 +7,7 @@ class SteamTechyClient(discord.Client):
     PREFIX_HOOK = 'steamtech ...'
     PREFIX_GAME_QUERY = "what games does "
     PREFIX_USER_QUERY = "tell me about "
+    PREFIX_USER_HEART = "❤"
 
     def __init__(self, steam_token):
         self.steam_api_wrapper = SteamAPIWrapper(steam_token)
@@ -29,7 +30,10 @@ class SteamTechyClient(discord.Client):
 
         if not text:
             return 'Yes?'
-        
+            
+        if text.startswith(self.PREFIX_USER_HEART):
+            return 'https://giphy.com/gifs/sexy-girl-hot-YmNrnc6BnCbjq'
+            
         if text.startswith(self.PREFIX_GAME_QUERY):
             return self.determine_game_query_response(message)
 
