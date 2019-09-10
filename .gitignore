@@ -1,3 +1,6 @@
 steamtech.config
 __pycache__
 .vscode
+/.vs/steamtech/v16
+/.vs/VSWorkspaceState.json
+/.vs
