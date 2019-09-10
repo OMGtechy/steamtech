@@ -109,10 +109,18 @@ class SteamTechyClient(discord.Client):
 
             time_spent = datetime.timedelta(minutes = next(game for game in games_owned if game_appid == game['appid'])['playtime_forever'])
 
-        time_spent_hours, remainder = divmod(time_spent.total_seconds(), 3600)
+        time_spent_weeks, remainder = divmod(time_spent.total_seconds(), 604800)
+        time_spent_days, remainder = divmod(remainder, 86400)
+        time_spent_hours, remainder = divmod(remainder, 3600)
         time_spent_minutes, remainder = divmod(remainder, 60)
 
-        return f'```' + f'{int(time_spent_hours)} hours(s), {int(time_spent_minutes)} minute(s)' + '```'
+        time_spent_string = str()
+        if time_spent_weeks > 0: time_spent_string += f'{int(time_spent_weeks)} week(s), '
+        if time_spent_days  > 0: time_spent_string += f'{int(time_spent_days)} day(s), '
+        if time_spent_hours > 0: time_spent_string += f'{int(time_spent_hours)} hours(s), '
+        time_spent_string += f'{int(time_spent_minutes)} minutes(s)'
+
+        return f'```' + time_spent_string + '```'
 
     def determine_game_query_response(self, message):
         success, error_message, user, keywords = self.extract_user_and_keywords(message, self.PREFIX_GAME_QUERY, None)
