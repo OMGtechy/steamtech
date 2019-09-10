@@ -3,6 +3,7 @@ import discord
 import re
 import functools
 import datetime
+import os
 
 class SteamTechyClient(discord.Client):
     PREFIX_HOOK = 'steamtech ...'
@@ -219,18 +220,22 @@ class SteamTechyClient(discord.Client):
 if __name__ == "__main__":
     settings = {}
 
-    with open('steamtech.config', 'r') as config_file:
-        for line in config_file:
-            # note that this...
-            # (a) doesn't check for duplicates
-            # (b) doesn't check the config file is valid (it'll just crash / do the wrong thing)
-            data = line.split()
-            key = data[0]
-            value = data[1]
-            settings[key] = value
+    try:
+        with open('steamtech.config', 'r') as config_file:
+            for line in config_file:
+                # note that this...
+                # (a) doesn't check for duplicates
+                # (b) doesn't check the config file is valid (it'll just crash / do the wrong thing)
+                data = line.split()
+                key = data[0]
+                value = data[1]
+                settings[key] = value
+    except FileNotFoundError:
+        # carry on, we might find all the info we need in the env vars
+        pass
 
-    discord_token = settings['discord_token']
-    steam_token = settings['steam_token']
+    discord_token = settings.get('discord_token', os.environ['DISCORD_TOKEN'])
+    steam_token = settings.get('steam_token', os.environ['STEAM_TOKEN'])
 
     client = SteamTechyClient(steam_token)
     client.run(discord_token)
