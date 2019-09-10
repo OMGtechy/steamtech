@@ -1,1 +1,1 @@
-web: python steamtech.py
+worker: python steamtech.py
