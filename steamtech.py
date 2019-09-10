@@ -90,21 +90,25 @@ class SteamTechyClient(discord.Client):
         if not success:
             return error_message
 
-        # yes, that's right, all games on steam
-        all_games = self.steam_api_wrapper.get_all_steam_games()
-
-        # anyone wanna tweet #bruteforce ?
         game_name = ' '.join(keywords)
-        game_entry = next(game for game in all_games if game_name == game.get('name', None).lower())
-
-        # now we have the entry, we can get the appid out of it
-        # yep, we just got every single game off of steam for a single appid
-        # guessing we'll go to hell for this
-        game_appid = game_entry['appid']
         games_owned = self.steam_api_wrapper.get_games_owned_by_user(user)
-        matching_game = next(game for game in games_owned if game_appid == game['appid'])
 
-        time_spent = datetime.timedelta(minutes = matching_game['playtime_forever'])
+        if game_name == 'steam games':
+            time_spent = datetime.timedelta(minutes = sum(game['playtime_forever'] for game in games_owned))
+        else:
+            # yes, that's right, all games on steam
+            all_games = self.steam_api_wrapper.get_all_steam_games()
+
+            # anyone wanna tweet #bruteforce ?
+            game_entry = next(game for game in all_games if game_name == game.get('name', None).lower())
+
+            # now we have the entry, we can get the appid out of it
+            # yep, we just got every single game off of steam for a single appid
+            # guessing we'll go to hell for this
+            game_appid = game_entry['appid']
+
+            time_spent = datetime.timedelta(minutes = next(game for game in games_owned if game_appid == game['appid'])['playtime_forever'])
+
         time_spent_hours, remainder = divmod(time_spent.total_seconds(), 3600)
         time_spent_minutes, remainder = divmod(remainder, 60)
 
