@@ -73,7 +73,7 @@ class SteamTechyClient(discord.Client):
                     captured_term = captures[capture_index]
 
                 if captured_term != next_term:
-                    return False, f'expected {next_term}, got {captured}', user, None
+                    return False, f'expected {next_term}, got {captured_term}', user, None
 
                 capture_index += 1
 
