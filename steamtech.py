@@ -2,12 +2,14 @@ from steam_api_wrapper import SteamAPIWrapper
 import discord
 import re
 import functools
+import datetime
+import os
 
 class SteamTechyClient(discord.Client):
     PREFIX_HOOK = 'steamtech ...'
     PREFIX_GAME_QUERY = "what games does "
     PREFIX_USER_QUERY = "tell me about "
-    PREFIX_HEART_QUERY = "\u2764"
+    PREFIX_TIME_QUERY = "how much time has "
 
     def __init__(self, steam_token):
         self.steam_api_wrapper = SteamAPIWrapper(steam_token)
@@ -30,36 +32,109 @@ class SteamTechyClient(discord.Client):
 
         if not text:
             return 'Yes?'
- 
-        if text.startswith(self.PREFIX_HEART_QUERY):
-            return 'https://giphy.com/gifs/sexy-girl-hot-YmNrnc6BnCbjq'
-
+        
         if text.startswith(self.PREFIX_GAME_QUERY):
             return self.determine_game_query_response(message)
 
         if text.startswith(self.PREFIX_USER_QUERY):
             return self.determine_summary_response(message)
 
+        if text.startswith(self.PREFIX_TIME_QUERY):
+            return self.determine_time_response(message)
+
         return r'¯\_(ツ)_/¯'
 
-    def determine_game_query_response(self, message):
-        text = message.content[len(self.PREFIX_HOOK) + len(self.PREFIX_GAME_QUERY):].strip().lower()
-        while text.endswith('?'):
-            text = text[:-1]
+    def strip_whitespace_and_prefixes(self, message_content, command_prefix, remove_end_question_mark): 
+        text = message_content[len(self.PREFIX_HOOK) + len(command_prefix):].strip()
+        if remove_end_question_mark:
+            while text.endswith('?'):
+                text = text[:-1].strip()
 
+        return text
+
+    def extract_user_and_keywords(self, message, command_prefix, fill_between_user_and_keywords):
+        text = self.strip_whitespace_and_prefixes(message.content, command_prefix, True).lower()
         captures = text.split()
 
         if len(captures) < 1:
-            return 'I couldn\'t work out what user you were talking about.'
+            return False, 'I couldn\'t work out what user you were talking about.', None, None
 
         user = captures[0]
 
-        if len(captures) < 2:
-            return f'I couldn\'t work out what you\'re asking me about {user}.'
+        capture_index = 1
 
-        keyword = captures[1]
+        if fill_between_user_and_keywords:
+            while len(fill_between_user_and_keywords) != 0:
+                # yes, there's an edge case where having the next term be
+                # (nothing) will break things, but nothing does that ... yet
+                captured_term = '(nothing)'
+                next_term = fill_between_user_and_keywords.pop(0)
 
-        return self.determine_game_query_response_based_on_keyword(user, keyword)
+                if len(captures) >= capture_index + 1:
+                    captured_term = captures[capture_index]
+
+                if captured_term != next_term:
+                    return False, f'In `{text}`:\n\texpected `{next_term}`, got `{captured_term}`', user, None
+
+                capture_index += 1
+
+        if len(captures) < capture_index + 1:
+            return False, f'I couldn\'t work out what you\'re asking me about {user}.', user, None
+
+        keywords = captures[capture_index:]
+
+        return True, None, user, keywords
+
+    def determine_time_response(self, message):
+        success, error_message, user, keywords = self.extract_user_and_keywords(message, self.PREFIX_TIME_QUERY, ['wasted', 'on'])
+
+        if not success:
+            return error_message
+
+        game_name = ' '.join(keywords)
+        games_owned = self.steam_api_wrapper.get_games_owned_by_user(user)
+
+        if game_name == 'steam games':
+            time_spent = datetime.timedelta(minutes = sum(game['playtime_forever'] for game in games_owned))
+        else:
+            # yes, that's right, all games on steam
+            all_games = self.steam_api_wrapper.get_all_steam_games()
+
+            # anyone wanna tweet #bruteforce ?
+            try:
+                game_entry = next(game for game in all_games if game_name == game.get('name', None).lower())
+            except StopIteration:
+                return f'Couldn\'t find a game called {game_name}'
+
+            # now we have the entry, we can get the appid out of it
+            # yep, we just got every single game off of steam for a single appid
+            # guessing we'll go to hell for this
+            game_appid = game_entry['appid']
+
+            time_spent = datetime.timedelta(minutes = next(game for game in games_owned if game_appid == game['appid'])['playtime_forever'])
+
+        time_spent_weeks, remainder = divmod(time_spent.total_seconds(), 604800)
+        time_spent_days, remainder = divmod(remainder, 86400)
+        time_spent_hours, remainder = divmod(remainder, 3600)
+        time_spent_minutes, remainder = divmod(remainder, 60)
+
+        time_spent_string = str()
+        if time_spent_weeks > 0: time_spent_string += f'{int(time_spent_weeks)} week(s), '
+        if time_spent_days  > 0: time_spent_string += f'{int(time_spent_days)} day(s), '
+        if time_spent_hours > 0: time_spent_string += f'{int(time_spent_hours)} hours(s), '
+        time_spent_string += f'{int(time_spent_minutes)} minutes(s)'
+
+        return f'```' + time_spent_string + '```'
+
+    def determine_game_query_response(self, message):
+        success, error_message, user, keywords = self.extract_user_and_keywords(message, self.PREFIX_GAME_QUERY, None)
+        if not success:
+            return error_message
+
+        if len(keywords) > 1:
+            return f'Trailing keywords: expected 1, got {len(keywords)} ({keywords})'
+
+        return self.determine_game_query_response_based_on_keyword(user, keywords[0])
 
     def determine_game_query_response_based_on_keyword(self, user, keyword):
         if keyword == 'play':
@@ -148,18 +223,22 @@ class SteamTechyClient(discord.Client):
 if __name__ == "__main__":
     settings = {}
 
-    with open('steamtech.config', 'r') as config_file:
-        for line in config_file:
-            # note that this...
-            # (a) doesn't check for duplicates
-            # (b) doesn't check the config file is valid (it'll just crash / do the wrong thing)
-            data = line.split()
-            key = data[0]
-            value = data[1]
-            settings[key] = value
+    try:
+        with open('steamtech.config', 'r') as config_file:
+            for line in config_file:
+                # note that this...
+                # (a) doesn't check for duplicates
+                # (b) doesn't check the config file is valid (it'll just crash / do the wrong thing)
+                data = line.split()
+                key = data[0]
+                value = data[1]
+                settings[key] = value
+    except FileNotFoundError:
+        # carry on, we might find all the info we need in the env vars
+        pass
 
-    discord_token = settings['discord_token']
-    steam_token = settings['steam_token']
+    discord_token = settings.get('discord_token', os.getenv('DISCORD_TOKEN', None))
+    steam_token = settings.get('steam_token', os.getenv('STEAM_TOKEN', None))
 
     client = SteamTechyClient(steam_token)
     client.run(discord_token)

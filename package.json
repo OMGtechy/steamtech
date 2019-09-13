@@ -1,0 +1,13 @@
+{
+    "name": "steamtech",
+    "description": "https://github.com/OMGtechy/steamtech",
+    "version": "0.0.0",
+    "main": "steamtech.py",
+    "scripts": {
+        "start": "python steamtech.py"
+    },
+    "dependencies": {
+        "python-valve": "0.2.1",
+        "discord-py": "1.2.3"
+    }
+}

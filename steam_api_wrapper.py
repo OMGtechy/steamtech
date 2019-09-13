@@ -26,6 +26,9 @@ class SteamAPIWrapper:
     def steam_player_service(self):
         return self.raw_api['IPlayerService']
 
+    def steam_store_service(self):
+        return self.raw_api['IStoreService']
+
     def get_response_from_result(self, where, dict):
         return self.get_key_from_dict(where, 'response', dict)
 
@@ -90,6 +93,55 @@ class SteamAPIWrapper:
         response = self.get_response_from_result(here, self.steam_player_service().GetRecentlyPlayedGames(count, steamid))
 
         response_count = self.get_key_from_dict(here, 'total_count', response)
+        if response_count == 0:
+            return None
+
+        return self.get_key_from_dict(here, 'games', response)
+
+    def get_all_steam_games(self):
+        def get_chunk(last_appid):
+            include_games = True
+            include_dlc = False
+            include_software = False
+            include_videos = False
+            include_hardware = False
+
+            here = f'GetAppListi({include_games}, {include_dlc}, {include_software}, {include_videos}, {include_hardware}, {last_appid})'
+            return self.get_response_from_result(here, self.steam_store_service().GetAppList(
+                include_games = include_games,
+                include_dlc = include_dlc,
+                include_software = include_software,
+                include_videos = include_videos,
+                include_hardware = include_hardware,
+                last_appid = last_appid
+            ))
+
+        games = []
+        last_appid = 0
+        get_more = True
+        while get_more:
+            chunk = get_chunk(last_appid)
+            games += chunk['apps']
+            get_more = chunk.get('have_more_results', False)
+            last_appid = chunk.get('last_appid', None)
+
+        return games
+
+    def get_games_owned_by_user(self, user):
+        steamid = self.get_steamid_for_user(user)
+        include_appinfo = False
+        include_played_free_games = True
+        appids_filter = 0
+
+        here = f'GetOwnedGames({steamid}, {include_appinfo}, {include_played_free_games}, {appids_filter})'
+        response = self.get_response_from_result(here, self.steam_player_service().GetOwnedGames(
+            steamid = steamid,
+            include_appinfo = include_appinfo,
+            include_played_free_games = include_played_free_games,
+            appids_filter = appids_filter
+        ))
+
+        response_count = self.get_key_from_dict(here, 'game_count', response)
         if response_count == 0:
             return None
 
