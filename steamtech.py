@@ -43,7 +43,9 @@ class SteamTechyClient(discord.Client):
             return 'Yes?'
 
         if text.startswith(self.PREFIX_HEART_QUERY):
-            return 'https://giphy.com/gifs/sexy-girl-hot-YmNrnc6BnCbjq'
+            if message.author.name.lower() == "olzbolz":
+                return 'https://giphy.com/gifs/sexy-girl-hot-YmNrnc6BnCbjq'
+            return "Only Oli has that power to summon Cthulhu!"
 
         if text.startswith(self.PREFIX_GAME_QUERY):
             return self.determine_game_query_response(message)
