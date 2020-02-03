@@ -14,6 +14,7 @@ class SteamTechyClient(discord.Client):
 
     def __init__(self, steam_token):
         self.steam_api_wrapper = SteamAPIWrapper(steam_token)
+        self.last_dave_attack = None
         super().__init__()
 
     async def on_ready(self):
@@ -28,6 +29,13 @@ class SteamTechyClient(discord.Client):
         # by talking to itself, just in case there's a bug / evil user
         if message.author == self.user:
             return 'Talking to yourself is the first sign of madness.'
+
+        if message.author.name.lower() == "your dad sells avon":
+            now = datetime.datetime.now()
+            if self.last_dave_attack is None or (now - self.last_dave_attack) > datetime.timedelta(seconds=60):
+                self.last_dave_attack = now
+                return 'Oh no you don\'t, Dave!'
+            return None
 
         text = message.content[len(self.PREFIX_HOOK):].strip().lower()
 
